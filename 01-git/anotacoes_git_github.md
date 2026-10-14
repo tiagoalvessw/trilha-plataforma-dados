@@ -151,3 +151,114 @@ O push envia os seus commits para o remoto. O -u grava a ligação entre a sua m
 Na primeira vez, o Windows deve abrir uma janela pedindo para você entrar na sua conta do GitHub pelo navegador. É normal: é como o Git ganha permissão para enviar.
 
 Ao terminar, abra a página do repositório no GitHub e atualize. O seu README.md deve aparecer na página. Cole aqui o resultado do git push.
+
+# Passo 5: validação dos passos.
+E confira com git remote -v.
+
+Com isso, o repositório está publicado só com o README profissional, e o roteiro pessoal fica guardado com você.
+
+
+# resumo de tudo feito até o momento:
+
+Tudo limpo: um único commit no histórico, publicado, e o remoto com o endereço correto. O roteiro antigo não existe mais no GitHub.
+
+Esse imprevisto acabou ensinando bastante coisa que aparece no dia a dia:
+
+O histórico guarda tudo. Apagar ou editar um arquivo num commit novo não remove as versões antigas. Por isso, o cuidado com o que entra no repositório vem antes do primeiro commit (é para isso que serve o .gitignore).
+Local e remoto são cópias separadas. Uma edição feita no site do GitHub não aparece no seu computador até um git pull.
+Comandos novos: git pull, git remote -v, git remote set-url, git branch -M e a configuração init.defaultBranch.
+
+
+# Teste para verificar o historico fic
+
+O ponto foi entender que o histórico vive na pasta .git e que cada commit é uma foto permanente: enquanto ela não era apagada, os commits antigos voltavam a cada envio. Um exercício curto, só local, sem GitHub, para ver isso com os próprios olhos:
+
+Crie uma pasta teste-git fora da trilha, rode git init e crie um arquivo segredo.txt com uma frase qualquer. Faça um commit.
+Apague a frase do arquivo, salve e faça outro commit.
+Rode git log --oneline e copie o código do primeiro commit.
+Rode git show codigo-do-primeiro-commit (trocando pelo código).
+
+Repare no que o git show mostra, e me diga o que concluiu. Depois, pode apagar a pasta teste-git inteira.
+ 
+PS C:\Users\PC-Tiago\Documents\teste-git> git add .
+PS C:\Users\PC-Tiago\Documents\teste-git> 
+PS C:\Users\PC-Tiago\Documents\teste-git> git commit -m "Adiciona a frase secreta"
+[master 6e9c919] Adiciona a frase secreta
+ 1 file changed, 1 insertion(+)
+PS C:\Users\PC-Tiago\Documents\teste-git> git add .                               
+PS C:\Users\PC-Tiago\Documents\teste-git> 
+PS C:\Users\PC-Tiago\Documents\teste-git> git commit -m "Remove a frase secreta"  
+[master 22662b9] Remove a frase secreta
+ 1 file changed, 1 deletion(-)
+PS C:\Users\PC-Tiago\Documents\teste-git> git log --oneline
+22662b9 (HEAD -> master) Remove a frase secreta
+6e9c919 Adiciona a frase secreta
+d822aeb teste ver isso com os próprios olhos
+PS C:\Users\PC-Tiago\Documents\teste-git> git show 6e9c919
+commit 6e9c919a9659990c787bd638ae16a09f85a6c97a
+Author: tiagoalvessw <tiagoalvessw@outlook.com>
+Date:   Wed Oct 14 10:49:30 2026 -0300
+
+    Adiciona a frase secreta
+
+diff --git a/segredo.txt b/segredo.txt
+index e69de29..b16d477 100644
+--- a/segredo.txt
++++ b/segredo.txt
+@@ -0,0 +1 @@
++segredo
+\ No newline at end of file
+PS C:\Users\PC-Tiago\Documents\teste-git> 
+
+
+
+Apague a frase, salve, e faça git add . e git commit -m "Remove a frase secreta".
+Rode git log --oneline: devem aparecer três commits. Pegue o código do commit “Adiciona a frase secreta”.
+Rode git show com esse código.
+
+ PS C:\Users\PC-Tiago\Documents\teste-git> git add .
+PS C:\Users\PC-Tiago\Documents\teste-git> 
+PS C:\Users\PC-Tiago\Documents\teste-git> git commit -m "Adiciona a frase secreta"
+[master 6e9c919] Adiciona a frase secreta
+ 1 file changed, 1 insertion(+)
+PS C:\Users\PC-Tiago\Documents\teste-git> git add .                               
+PS C:\Users\PC-Tiago\Documents\teste-git> 
+PS C:\Users\PC-Tiago\Documents\teste-git> git commit -m "Remove a frase secreta"  
+[master 22662b9] Remove a frase secreta
+ 1 file changed, 1 deletion(-)
+PS C:\Users\PC-Tiago\Documents\teste-git> git log --oneline
+22662b9 (HEAD -> master) Remove a frase secreta
+6e9c919 Adiciona a frase secreta
+d822aeb teste ver isso com os próprios olhos
+PS C:\Users\PC-Tiago\Documents\teste-git> git show
+commit 22662b93859fbd498fbbf48eed2749d271564982 (HEAD -> master)
+Author: tiagoalvessw <tiagoalvessw@outlook.com>
+Date:   Wed Oct 14 10:50:25 2026 -0300
+
+    Remove a frase secreta
+
+diff --git a/segredo.txt b/segredo.txt
+index b16d477..e69de29 100644
+--- a/segredo.txt
++++ b/segredo.txt
+@@ -1 +0,0 @@
+-segredo
+\ No newline at end of file
+PS C:\Users\PC-Tiago\Documents\teste-git>
+
+
+Agora o exercício mostrou exatamente o ponto. Você rodou git show sem código, e nesse caso ele mostra o commit mais recente, o “Remove a frase secreta”. E repare no que aparece no final:
+
+-segredo
+
+No diff, as linhas com - são as que foram removidas, e as com + são as que foram adicionadas. Ou seja: o próprio commit que apaga o segredo mostra o segredo. Para remover a frase, o Git registra qual era a frase removida.
+
+Se você rodar git show 6e9c919, vai ver o outro lado: o commit “Adiciona a frase secreta”, com a linha +segredo.
+
+A conclusão é a mesma do roteiro na trilha: o arquivo hoje está vazio, mas a frase continua acessível no histórico de duas formas, no commit que a adicionou e no commit que a removeu. Enquanto existir a pasta .git com esses commits, o segredo existe.
+
+Isso tem uma consequência muito prática para o seu projeto na AWS: se uma chave de acesso da AWS for parar num commit, mesmo que você apague no commit seguinte, ela deve ser considerada vazada. O certo, nesse caso, é desativar a chave no console da AWS e criar outra. Por isso as credenciais nunca ficam no código: elas ficam na configuração do AWS CLI, fora do repositório.
+
+=============================================
+###### Branches e pull requests ######
+=============================================
