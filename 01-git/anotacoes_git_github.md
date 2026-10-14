@@ -262,3 +262,115 @@ Isso tem uma consequência muito prática para o seu projeto na AWS: se uma chav
 =============================================
 ###### Branches e pull requests ######
 =============================================
+
+O que é uma branch
+
+Até agora, todos os seus commits foram numa linha só, a main. Uma branch é uma linha paralela: você cria uma cópia do ponto atual, trabalha nela à vontade, e a main continua intacta. Quando o trabalho está pronto, você junta a branch de volta na main. Juntar se chama merge.
+
+Por que isso importa em times de plataforma: a main é a versão “oficial”, às vezes a que está rodando em produção. Ninguém mexe nela diretamente. Cada mudança nasce numa branch.
+
+O que é um pull request (PR)
+
+É o pedido, feito no GitHub, para juntar uma branch na main. No PR, outras pessoas leem as mudanças, comentam e aprovam, e só então o merge acontece. É assim que o código é revisado nas empresas. Quando você trabalha sozinho, o PR serve como registro organizado de cada mudança, e é um ótimo treino do fluxo real.
+
+O fluxo completo
+criar branch → editar → commit → enviar a branch → abrir PR → merge → atualizar a main local
+
+Parte 1: criar a branch e trabalhar nela
+
+Na pasta da trilha:
+Criar a branch e entrar nela:
+   git switch -c anotacoes-branches
+
+resultado
+PS C:\Users\PC-Tiago\Documents\trilha-plataforma-dados>    git switch -c anotacoes-branches
+Switched to a new branch 'anotacoes-branches'   
+
+O switch troca de branch, e o -c cria uma nova com esse nome. Confira com git branch: ele lista as branches, e a atual aparece com um *.
+
+PS C:\Users\PC-Tiago\Documents\trilha-plataforma-dados> git branch
+* anotacoes-branches
+  main
+PS C:\Users\PC-Tiago\Documents\trilha-plataforma-dados> 
+
+
+Editar: no anotacoes_git_github.md, escreva o que aprendeu sobre branches e PR até aqui, com as suas palavras. Salve.
+Commit, como sempre: git add . e git commit -m "...", com uma mensagem que descreva a mudança.
+Enviar a branch para o GitHub:
+   git push -u origin anotacoes-branches
+
+resultado:
+
+PS C:\Users\PC-Tiago\Documents\trilha-plataforma-dados\01-git> git push -u origin anotacoes-branches
+Enumerating objects: 11, done.
+Counting objects: 100% (11/11), done.
+Delta compression using up to 24 threads
+Compressing objects: 100% (8/8), done.
+Writing objects: 100% (8/8), 2.72 KiB | 928.00 KiB/s, done.
+Total 8 (delta 2), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (2/2), completed with 1 local object.
+remote:
+remote: Create a pull request for 'anotacoes-branches' on GitHub by visiting:
+remote:      https://github.com/tiagoalvessw/trilha-plataforma-dados/pull/new/anotacoes-branches
+remote:
+To https://github.com/tiagoalvessw/trilha-plataforma-dados.git
+ * [new branch]      anotacoes-branches -> anotacoes-branches
+branch 'anotacoes-branches' set up to track 'origin/anotacoes-branches'.
+PS C:\Users\PC-Tiago\Documents\trilha-plataforma-dados\01-git> 
+
+Enviado! E repare que o próprio GitHub já respondeu com um convite: “Create a pull request for ‘anotacoes-branches’”, com o link pronto. Esse é o fluxo normal: você envia a branch, e o GitHub sugere abrir o PR.
+
+Parte 2: o pull request
+
+Abra o link que apareceu na saída (.../pull/new/anotacoes-branches).
+Confira a direção: no topo, deve aparecer base: main ← compare: anotacoes-branches. Lê-se “juntar a anotacoes-branches na main”.
+Título e descrição: o título é uma frase curta sobre a mudança (por exemplo, “Adiciona anotações sobre branches e pull requests”). Na descrição, explique em duas ou três linhas o que foi feito. Em times, é aqui que você conta ao revisor o que ele vai encontrar.
+Clique em Create pull request.
+Revise as mudanças: abra a aba Files changed. Você vai ver o mesmo diff do git show: linhas com + em verde (adicionadas) e com - em vermelho (removidas). É essa tela que um revisor lê. Repare que aparecem os dois commits: o do teste do histórico (que estava só na sua main local) e o das anotações.
+Faça o merge: volte à aba Conversation, clique em Merge pull request e em Confirm merge.
+O GitHub vai oferecer Delete branch. Pode apagar: a branch já cumpriu o papel, e os commits dela agora estão na main.
+
+Parte 3: atualizar o seu computador
+
+O merge aconteceu no GitHub, então a sua main local ainda não sabe dele. No terminal:
+
+git switch main
+git pull
+git branch -d anotacoes-branches
+o switch main volta para a linha principal;
+o pull traz o merge do GitHub;
+o branch -d apaga a branch local, que já foi juntada.
+
+No final, rode git log --oneline e cole o resultado.
+
+PS C:\Users\PC-Tiago\Documents\trilha-plataforma-dados\01-git> git log --oneline 
+91ec1ef (HEAD -> main, origin/main, origin/HEAD) Merge pull request #1 from tiagoalvessw/anotacoes-branches
+17dac6c (origin/anotacoes-branches) Aprendendo sobre ###### Branches e pull requests ######
+3e63cf4 Acompanhando historico de alterações de arquivo - Teste para verificar o historico fica
+7171337 Inicia a trilha de plataforma de dados
+PS C:\Users\PC-Tiago\Documents\trilha-plataforma-dados\01-git> 
+
+Fluxo completo! Lendo o histórico de baixo para cima:
+
+7171337: o primeiro commit da trilha;
+3e63cf4 e 17dac6c: os dois commits que vieram pela branch;
+91ec1ef: o merge commit, “Merge pull request #1”. É o commit que o GitHub cria ao juntar a branch na main. O “#1” é o número do seu primeiro pull request.
+
+E o (HEAD -> main, origin/main) na mesma linha mostra que a sua main local e a do GitHub estão iguais.
+
+Um detalhe: ainda aparece origin/anotacoes-branches. É uma lembrança local de como a branch estava no GitHub. Se você apagou a branch no site, essa lembrança ficou desatualizada. Para limpar:
+
+git fetch --prune
+
+Resultado:
+PS C:\Users\PC-Tiago\Documents\trilha-plataforma-dados\01-git> git fetch --prune
+From https://github.com/tiagoalvessw/trilha-plataforma-dados
+ - [deleted]         (none)     -> origin/anotacoes-branches
+PS C:\Users\PC-Tiago\Documents\trilha-plataforma-dados\01-git> 
+
+O fetch busca as novidades do GitHub sem mexer nos seus arquivos, e o --prune remove as lembranças de branches que não existem mais lá.
+
+Uma sugestão de estilo: as mensagens de commit ficam no histórico público, então vale mantê-las limpas e descritivas, sem os ######. Por exemplo, “Adiciona anotações sobre branches e pull requests”. É um detalhe que recrutadores notam ao olhar um repositório.
+
+Com isso, o essencial do bloco de Git está feito: commits, .gitignore, histórico, remoto, push e pull, branches, pull request e merge. Você também passou por problemas reais, como o histórico com informação indesejada e o repositório com nome errado, que ensinam mais do que um tutorial sem imprevistos.
+
