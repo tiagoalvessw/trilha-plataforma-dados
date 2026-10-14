@@ -259,4 +259,6 @@ A conclusão é a mesma do roteiro na trilha: o arquivo hoje está vazio, mas a 
 
 Isso tem uma consequência muito prática para o seu projeto na AWS: se uma chave de acesso da AWS for parar num commit, mesmo que você apague no commit seguinte, ela deve ser considerada vazada. O certo, nesse caso, é desativar a chave no console da AWS e criar outra. Por isso as credenciais nunca ficam no código: elas ficam na configuração do AWS CLI, fora do repositório.
 
-
+=============================================
+###### Branches e pull requests ######
+=============================================
