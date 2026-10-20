@@ -384,3 +384,37 @@ hoje, na carga	o processo pede “pedidos com data_criacao depois de ontem”. E
 Ou seja: com a data_criacao, a carga só enxerga pedidos novos, e nunca as alterações em pedidos antigos. O destino ficaria com o status desatualizado para sempre.
 
 O que resolve é uma coluna que muda toda vez que a linha é alterada: normalmente chamada data_atualizacao (ou updated_at). Quando o status muda hoje, ela passa a valer hoje, e o pedido entra na carga.    
+
+## Schema-on-write × schema-on-read
+
+
+“Schema” é a estrutura de uma tabela: quais colunas existem e de que tipo é cada uma. A diferença entre os dois modelos está em quando essa estrutura é aplicada aos dados.
+
+Schema-on-write (estrutura na escrita)
+É o modelo dos bancos de dados e dos warehouses, como o seu PostgreSQL da Olist. Antes de gravar, você cria a tabela com as colunas e os tipos. Na hora de inserir, o banco confere cada linha: se uma data vier como “abc”, ele recusa.
+
+Vantagem: o que está gravado é sempre válido. Quem consulta confia na estrutura.
+Desvantagem: é rígido. Antes de guardar qualquer dado, alguém precisa definir a estrutura, e dados fora do padrão são barrados.
+
+Schema-on-read (estrutura na leitura)
+É o modelo do data lake. Os arquivos são gravados como chegam, sem conferência. A estrutura só é aplicada na hora de ler: você descreve como interpretar o arquivo (quais colunas, de que tipo), e a ferramenta aplica essa descrição ao consultar.
+
+Vantagem: é flexível. Você guarda qualquer coisa agora e decide depois como ler.
+Desvantagem: os problemas só aparecem na leitura. Se uma linha tiver “abc” no lugar da data, a consulta é que vai falhar ou devolver vazio.
+
+A ligação com a AWS
+
+É assim que o Athena consulta os CSVs da raw sem eles terem sido “carregados” em um banco: você registra no Glue Data Catalog uma tabela que descreve os arquivos (onde estão no S3, quais colunas, de que tipo), e o Athena aplica essa descrição a cada consulta. Os arquivos continuam lá, intocados. Esse foi o passo 4 do roteiro do projeto: “catalogar a raw”.
+
+E repare em como isso se encaixa nas camadas: a raw é schema-on-read (guarda o que chega, sem barrar nada), e a passagem para a trusted é onde os tipos são conferidos e corrigidos. As tabelas Iceberg da trusted funcionam como schema-on-write: o schema faz parte da tabela, e a gravação respeita os tipos.
+
+Qual a diferença entre os dois modelos, em uma frase?
+    um é rigido e outro flexivel
+Um CSV chega na raw com uma linha em que o valor pago é “N/A”. O que acontece em cada modelo?
+    no Schema-on-write ele recusa, Schema-on-read você descreve como interpretar
+
+Por que faz sentido a raw ser schema-on-read e a trusted ser schema-on-write?
+    schema-on-read guarda o que chega, sem barrar nada, schema-on-write o schema faz parte da tabela, e a gravação respeita os tipos
+    
+Por que a raw combina com schema-on-read e a trusted com schema-on-write? Use as duas perguntas-guia da mensagem anterior (a regra de ouro da raw, e o que quem usa a trusted precisa).
+    por ela prioriza a preservação total dos dados ja a write presenta a consistencia e leitura dos dados.
