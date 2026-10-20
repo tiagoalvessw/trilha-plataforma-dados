@@ -315,3 +315,72 @@ Certo: categoria_produto. Só complete a justificativa com a primeira condição
 C. O cadastro de vendedores
 
 Aqui a resposta é não particionar. Com 3 mil linhas, a tabela inteira cabe em um único arquivo pequeno, que o Athena lê quase instantaneamente. Particionando por estado, você criaria 27 arquivos ainda menores, de cerca de 100 linhas cada, e cairia no problema dos arquivos pequenos: mais arquivos para abrir, mais lento, sem ganho nenhum. Além disso, o enunciado nem diz que as consultas filtram por estado.    
+
+
+## Carga completa × carga incremental
+
+
+Toda ingestão responde a uma pergunta: a cada execução, eu trago tudo de novo ou só o que mudou?
+
+# Carga completa (full load)
+A cada execução, você copia a origem inteira e substitui o que tinha antes.
+
+Vantagem: é simples, e o resultado é sempre um retrato exato da origem naquele momento. Se algo foi apagado na origem, também some no destino.
+Desvantagem: custa caro e demora quando a origem é grande. Copiar 700 milhões de transações todo dia para pegar as 2 milhões novas é desperdício.
+Quando usar: tabelas pequenas ou que mudam por inteiro, como o cadastro de 3 mil vendedores do exercício. Ou a primeira carga de qualquer tabela.
+
+# Carga incremental
+A cada execução, você traz só o que entrou ou mudou desde a última vez.
+
+Vantagem: muito mais rápida e barata em tabelas grandes.
+Desvantagem: é mais complexa. Você precisa saber o que mudou, e precisa tratar alterações em linhas que já existem.
+Quando usar: tabelas grandes que crescem com o tempo, como a de transações de cartão.
+
+# Como saber o que mudou: a coluna de controle
+
+O jeito mais comum é usar uma coluna de data na origem, como data_criacao ou data_atualizacao. O processo guarda a maior data que já trouxe, e na execução seguinte pede só as linhas com data maior que ela. Esse marcador se chama watermark (marca d’água).
+
+Exemplo: ontem a carga trouxe pedidos até 2018-08-29 23:59. Hoje, ela pede só os pedidos depois desse momento.
+
+# O problema das linhas que mudam
+
+Um pedido da Olist nasce como “created”, depois vira “approved”, “shipped” e “delivered”. Se a carga de ontem trouxe o pedido como “shipped”, e hoje ele mudou para “delivered”, a carga incremental de hoje traz o pedido de novo. O destino não pode simplesmente acrescentar essa linha: ficaria com o mesmo pedido duas vezes, com status diferentes.
+
+O certo é: se o pedido já existe, atualiza; se não existe, insere. Essa operação se chama upsert (update + insert), e em SQL é feita com o comando MERGE. Um data lake comum, só com arquivos Parquet, não consegue fazer isso com segurança. O Iceberg consegue, e esse é um dos principais motivos de ele existir.
+
+# E o CDC?
+
+Uma forma mais avançada de incremental: em vez de perguntar “o que tem data maior que X”, o processo lê o registro interno de alterações do banco de origem, que anota cada inserção, atualização e exclusão. Chama-se CDC (change data capture, captura de mudanças). Na AWS, o serviço DMS faz isso. Para agora, basta saber que existe e que resolve o caso das exclusões, que a coluna de controle não enxerga.
+
+# Exercicio
+
+Para cada tabela, qual tipo de carga você usaria, e por quê?
+a. uma tabela de 50 linhas com as cotações das moedas, que muda inteira todo dia;
+    usaria a carga completa, por ter poucas linhas, e por ser simples, é um retrato exato do momento. 
+
+b. uma tabela de pedidos com 200 milhões de linhas, que recebe 300 mil pedidos novos por dia.
+    usaria a incremental por ser mais rapido e barato em tabelas grandes.
+
+Na carga incremental de pedidos, por que não basta acrescentar as linhas novas no destino? Use o exemplo do status.
+    se um pedido ontem é a caminho e hoje é entregue, a carga incremental traz um novo pedido; isso é um problema pois ele ficara com o mesmo pedido 2x, porém status diferentes.
+
+Uma carga incremental usa a coluna data_criacao como watermark. Um pedido antigo, criado há um mês, teve o status alterado hoje. Ele entra na carga de hoje? Que coluna resolveria isso?
+    a coluna data_criacao, o processo guarda a maior data  atual, se houve uma alteração, ele vai novamente guardar essa nova data com a alteração do status.
+
+A 1 e a 2 estão certas. A 3 tem o ponto mais importante do assunto, então vale olhar com calma.
+
+1. Certo nas duas. Na a, um motivo extra reforça a escolha: como a tabela muda inteira todo dia, uma carga incremental traria tudo de qualquer jeito. Na b, dá para mostrar com números: trazer 300 mil linhas em vez de 200 milhões.
+
+2. Certo. Só um ajuste de palavra: a carga não traz um pedido novo, traz o mesmo pedido de novo, com o status atualizado. E a solução é o upsert (MERGE): se o pedido já existe no destino, atualiza; se não, insere.
+
+3. Aqui está a armadilha. A data_criacao não muda quando o status muda: ela registra quando o pedido nasceu, e esse momento nunca se altera. Acompanhe:
+
+Momento	O que acontece
+há um mês	o pedido é criado, com data_criacao = há um mês
+ontem	a carga incremental roda e guarda o watermark = ontem
+hoje	o status do pedido muda, mas a data_criacao continua “há um mês”
+hoje, na carga	o processo pede “pedidos com data_criacao depois de ontem”. Esse pedido tem data de um mês atrás, então fica de fora
+
+Ou seja: com a data_criacao, a carga só enxerga pedidos novos, e nunca as alterações em pedidos antigos. O destino ficaria com o status desatualizado para sempre.
+
+O que resolve é uma coluna que muda toda vez que a linha é alterada: normalmente chamada data_atualizacao (ou updated_at). Quando o status muda hoje, ela passa a valer hoje, e o pedido entra na carga.    
